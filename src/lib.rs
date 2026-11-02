@@ -134,14 +134,36 @@ fn draw(s: &State) {
         ctx.stroke();
     }
 
-    // Set labels above each circle.
+    // Set labels on the line through the image centre and each circle centre,
+    // outside the circle: rotationally symmetric in the 3-set layout.
+    // Text alignment follows the radial direction so glyphs hang outward.
     ctx.set_font("20px sans-serif");
     ctx.set_fill_style_str("#111111");
-    ctx.set_text_align("center");
     let labels = ["A", "B", "C"];
     for (i, &(cx, cy)) in cs.iter().enumerate() {
-        ctx.fill_text(labels[i], cx, cy - R - 8.0).unwrap();
+        let (lx, ly) = if s.n == 3 {
+            let vx = cx - W / 2.0;
+            let vy = cy - H / 2.0;
+            let len = (vx * vx + vy * vy).sqrt();
+            let (ux, uy) = (vx / len, vy / len);
+            ctx.set_text_align(if ux < -0.3 {
+                "right"
+            } else if ux > 0.3 {
+                "left"
+            } else {
+                "center"
+            });
+            ctx.set_text_baseline(if uy > 0.3 { "top" } else { "alphabetic" });
+            (cx + ux * (R + 8.0), cy + uy * (R + 8.0))
+        } else {
+            ctx.set_text_align("center");
+            ctx.set_text_baseline("alphabetic");
+            (cx, cy - R - 8.0)
+        };
+        ctx.fill_text(labels[i], lx, ly).unwrap();
     }
+    ctx.set_text_align("center");
+    ctx.set_text_baseline("alphabetic");
 
     // Optional element dots: one per region, labelled with the bitmask value.
     if s.elements {
