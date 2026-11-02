@@ -58,11 +58,10 @@ fn membership(x: f64, y: f64, cs: &[(f64, f64)]) -> usize {
 }
 
 /// Representative point per region: centroid of a fine grid sample.
-/// Region 0 (outside all circles) uses the sample farthest from the circles,
+/// Region 0 (outside all circles) is fixed ~2rem in from the top-left corner,
 /// since its centroid lands inside the circles by symmetry.
 fn compute_dots(n: usize, cs: &[(f64, f64)]) -> [Option<(f64, f64)>; 8] {
     let mut acc = [(0.0f64, 0.0f64, 0u32); 8];
-    let mut farthest: Option<(f64, f64, f64)> = None; // region 0: x, y, min dist^2 to a circle
     let step = 2.0;
     let mut x = PAD;
     while x <= W - PAD {
@@ -73,15 +72,6 @@ fn compute_dots(n: usize, cs: &[(f64, f64)]) -> [Option<(f64, f64)>; 8] {
             e.0 += x;
             e.1 += y;
             e.2 += 1;
-            if m == 0 {
-                let d2 = cs
-                    .iter()
-                    .map(|&(cx, cy)| (x - cx) * (x - cx) + (y - cy) * (y - cy))
-                    .fold(f64::INFINITY, f64::min);
-                if farthest.is_none_or(|f| d2 > f.2) {
-                    farthest = Some((x, y, d2));
-                }
-            }
             y += step;
         }
         x += step;
@@ -94,15 +84,17 @@ fn compute_dots(n: usize, cs: &[(f64, f64)]) -> [Option<(f64, f64)>; 8] {
             out[m] = Some((x, y));
         }
     }
-    if let Some((x, y, _)) = farthest {
-        out[0] = Some((x.clamp(PAD + 14.0, W - PAD - 14.0), y.clamp(PAD + 14.0, H - PAD - 14.0)));
-    }
+    out[0] = Some((PAD + 32.0, PAD + 32.0));
     out
 }
 
 /// Fill exactly the area matching region bitmask m using nested clips.
 fn fill_region(ctx: &CanvasRenderingContext2d, n: usize, cs: &[(f64, f64)], m: usize, color: &str) {
     ctx.save();
+    // Keep the paint inside the universe rectangle.
+    let u = Path2d::new().unwrap();
+    u.rect(PAD, PAD, W - 2.0 * PAD, H - 2.0 * PAD);
+    ctx.clip_with_path_2d(&u);
     for i in 0..n {
         let (cx, cy) = cs[i];
         let p = Path2d::new().unwrap();
@@ -157,15 +149,14 @@ fn draw(s: &State) {
         ctx.set_text_baseline("middle");
         for m in 0..(1usize << s.n) {
             if let Some((x, y)) = s.dots[m] {
-                ctx.begin_path();
-                ctx.arc(x, y, 12.0, 0.0, TAU).unwrap();
-                ctx.set_fill_style_str("#ffffff");
-                ctx.fill();
-                ctx.set_line_width(1.5);
-                ctx.set_stroke_style_str("#000000");
-                ctx.stroke();
+                let label = m.to_string();
                 ctx.set_fill_style_str("#000000");
-                ctx.fill_text(&m.to_string(), x, y + 0.5).unwrap();
+                ctx.fill_text(&label, x, y + 0.5).unwrap();
+                // small dot a few pixels off the top-left of the label
+                let w = ctx.measure_text(&label).unwrap().width();
+                ctx.begin_path();
+                ctx.arc(x - w / 2.0 - 4.0, y - 6.0, 2.2, 0.0, TAU).unwrap();
+                ctx.fill();
             }
         }
         ctx.set_text_baseline("alphabetic");
