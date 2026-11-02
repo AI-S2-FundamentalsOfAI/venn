@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Venn Diagram Tool</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 680px; text-align: center; }
+    #controls { display: flex; gap: 1.5rem; justify-content: center; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+    canvas { border: 1px solid #ccc; max-width: 100%; cursor: pointer; }
+    .hint { color: #666; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>Venn Diagram Tool</h1>
+  <div id="controls">
+    <label>Sets
+      <select id="nsets">
+        <option value="2" selected>A and B</option>
+        <option value="3">A, B and C</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="elements"> Show elements</label>
+    <button id="save" type="button">Save as PNG</button>
+  </div>
+  <canvas id="venn" width="640" height="480"></canvas>
+  <p class="hint">Click any region (including the area outside the circles) to colour it; click again to clear.</p>
+  <script type="module">
+    import init from './pkg/venn.js';
+    init();
+  </script>
+</body>
+</html>
